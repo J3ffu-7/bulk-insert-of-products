@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Detail</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Product Detail</h1>
+
+        <a href="{% url 'product_list' %}" class="btn btn-primary mr-3 mb-3">Back to Product List</a>
+
+        <form id="product-detail-form">
+            <!-- Product Section -->
+            <div class="mb-3">
+                <label for="product-name" class="form-label">Product Name</label>
+                <input type="text" class="form-control" id="product-name" value="{{ product.name }}">
+            </div>
+            <div class="mb-3">
+                <label for="product-image" class="form-label">Product Image URL</label>
+                <input type="text" class="form-control" id="product-image" value="{{ product.image }}">
+            </div>
+
+            <!-- Delete Product Button -->
+            <div class="mb-3">
+                <button type="button" id="delete-product-btn" class="btn btn-danger mb-2">Delete this product</button>
+            </div>
+
+            <!-- Variants Section -->
+            <h3>Variants</h3>
+            <div id="variant-list">
+                {% for variant in variants %}
+                <div class="variant-item mb-3">
+                    <input type="hidden" class="variant-id" value="{{ variant.id }}">
+                    <div class="form-check mb-1">
+                        <input class="form-check-input delete-variant" type="checkbox">
+                        <label class="form-check-label">Delete this variant</label>
+                    </div>
+                    <input type="text" class="form-control mb-1 variant-name" value="{{ variant.name }}"
+                        placeholder="Variant Name">
+                    <input type="text" class="form-control mb-1 variant-sku" value="{{ variant.sku }}"
+                        placeholder="SKU">
+                    <input type="text" class="form-control mb-1 variant-price" value="{{ variant.price }}"
+                        placeholder="Price">
+                    <input type="text" class="form-control mb-1 variant-details" value="{{ variant.details }}"
+                        placeholder="Details">
+                </div>
+                {% endfor %}
+            </div>
+
+            <button type="button" class="btn btn-secondary add-variant-btn mb-4">Add Variant</button>
+            <button type="submit" class="btn btn-success mb-4">Save Changes</button>
+
+        </form>
+
+
+    </div>
+
+    <script>
+        // Add new variant dynamically
+        $(document).on('click', '.add-variant-btn', function () {
+            $('#variant-list').append(`
+                <div class="variant-item mb-3">
+                    <div class="form-check mb-1">
+                        <input class="form-check-input delete-variant" type="checkbox">
+                        <label class="form-check-label">Delete this variant</label>
+                    </div>
+                    <input type="text" class="form-control mb-1 variant-name" placeholder="Variant Name">
+                    <input type="text" class="form-control mb-1 variant-sku" placeholder="SKU">
+                    <input type="text" class="form-control mb-1 variant-price" placeholder="Price">
+                    <input type="text" class="form-control mb-1 variant-details" placeholder="Details">
+                </div>
+            `);
+        });
+
+        // Handle form submission (update product and variants)
+        $('#product-detail-form').on('submit', function (e) {
+            e.preventDefault();
+
+            // Collect product data
+            const productName = $('#product-name').val();
+            const productImage = $('#product-image').val();
+            const deleteProduct = false;
+            const variants = [];
+
+            // Collect variant data
+            $('.variant-item').each(function () {
+                const variantId = $(this).find('.variant-id').val();  // This may be empty for new variants
+                const variantName = $(this).find('.variant-name').val();
+                const variantSku = $(this).find('.variant-sku').val();
+                const variantPrice = $(this).find('.variant-price').val();
+                const variantDetails = $(this).find('.variant-details').val();
+                const deleteVariant = $(this).find('.delete-variant').is(':checked');
+
+                variants.push({
+                    id: variantId || null,  // Pass null for new variants (no id)
+                    name: variantName,
+                    sku: variantSku,
+                    price: variantPrice,
+                    details: variantDetails,
+                    delete: deleteVariant
+                });
+            });
+
+            // Send data to update the product
+            $.ajax({
+                type: 'PUT',
+                url: '{% url "product_detail" product.id %}',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    name: productName,
+                    image: productImage,
+                    delete: deleteProduct,
+                    variants: variants
+                }),
+                success: function (response) {
+                    alert('Product and variants updated successfully!');
+                    window.location.reload();
+                },
+                error: function (error) {
+                    console.error('Error:', error);
+                    alert('Error occurred while updating.');
+                }
+            });
+        });
+
+        // Handle product deletion
+        $('#delete-product-btn').on('click', function () {
+            // Show confirmation dialog
+            const confirmed = confirm('Are you sure you want to delete this product?');
+            if (confirmed) {
+                // Make an AJAX DELETE request to delete the product
+                $.ajax({
+                    type: 'DELETE',
+                    url: '{% url "product_detail" product.id %}',
+                    success: function (response) {
+                        alert('Product deleted successfully!');
+                        window.location.href = '{% url "product_list" %}';  // Redirect to the product list
+                    },
+                    error: function (error) {
+                        console.error('Error:', error);
+                        alert('Error occurred while deleting.');
+                    }
+                });
+            }
+        });
+
+    </script>
+</body>
+
+</html>

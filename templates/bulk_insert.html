@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Insert Products</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Bulk Insert Products</h1>
+        <a href="{% url 'product_list' %}" class="btn btn-primary mr-3 mb-3">List All Products</a>
+        <form id="bulk-insert-form">
+            <div id="product-list">
+                <!-- Product entry template -->
+                <div class="product-item mb-4">
+                    <h4>Product</h4>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input delete-product" type="checkbox">
+                        <label class="form-check-label">Don't add this product</label>
+                    </div>
+                    <div class="mb-3">
+                        <label for="product-name" class="form-label">Product Name</label>
+                        <input type="text" class="form-control product-name" placeholder="Enter product name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="product-image" class="form-label">Product Image URL</label>
+                        <input type="text" class="form-control product-image" placeholder="Enter product image URL">
+                    </div>
+
+                    <h5>Variants</h5>
+                    <div class="variants-list">
+                        <div class="variant-item mb-2">
+                            <div class="form-check mb-1">
+                                <input class="form-check-input delete-variant" type="checkbox">
+                                <label class="form-check-label">Don't add this variant</label>
+                            </div>
+                            <input type="text" class="form-control mb-1 variant-name" placeholder="Variant Name">
+                            <input type="text" class="form-control mb-1 variant-sku" placeholder="SKU">
+                            <input type="number" class="form-control mb-1 variant-price" placeholder="Price">
+                            <input type="text" class="form-control mb-1 variant-details" placeholder="Details">
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary add-variant-btn">Add Variant</button>
+                </div>
+            </div>
+
+            <button type="button" class="btn btn-primary add-product-btn mt-3">Add Product</button>
+            <button type="submit" class="btn btn-success mt-3">Submit</button>
+        </form>
+    </div>
+
+    <script>
+        // Dynamically add a product block
+        $(document).on('click', '.add-product-btn', function() {
+            $('#product-list').append(`
+                <div class="product-item mb-4">
+                    <h4>Product</h4>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input delete-product" type="checkbox">
+                        <label class="form-check-label">Don't add this product</label>
+                    </div>
+                    <div class="mb-3">
+                        <label for="product-name" class="form-label">Product Name</label>
+                        <input type="text" class="form-control product-name" placeholder="Enter product name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="product-image" class="form-label">Product Image URL</label>
+                        <input type="text" class="form-control product-image" placeholder="Enter product image URL">
+                    </div>
+
+                    <h5>Variants</h5>
+                    <div class="variants-list">
+                        <div class="variant-item mb-2">
+                            <div class="form-check mb-1">
+                                <input class="form-check-input delete-variant" type="checkbox">
+                                <label class="form-check-label">Don't add this variant</label>
+                            </div>
+                            <input type="text" class="form-control mb-1 variant-name" placeholder="Variant Name">
+                            <input type="text" class="form-control mb-1 variant-sku" placeholder="SKU">
+                            <input type="number" class="form-control mb-1 variant-price" placeholder="Price">
+                            <input type="text" class="form-control mb-1 variant-details" placeholder="Details">
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary add-variant-btn">Add Variant</button>
+                </div>
+            `);
+        });
+
+        // Dynamically add a variant block
+        $(document).on('click', '.add-variant-btn', function() {
+            $(this).siblings('.variants-list').append(`
+                <div class="variant-item mb-2">
+                    <div class="form-check mb-1">
+                        <input class="form-check-input delete-variant" type="checkbox">
+                        <label class="form-check-label">Don't add this variant</label>
+                    </div>
+                    <input type="text" class="form-control mb-1 variant-name" placeholder="Variant Name">
+                    <input type="text" class="form-control mb-1 variant-sku" placeholder="SKU">
+                    <input type="number" class="form-control mb-1 variant-price" placeholder="Price">
+                    <input type="text" class="form-control mb-1 variant-details" placeholder="Details">
+                </div>
+            `);
+        });
+
+        // Handle form submission and AJAX request
+        $('#bulk-insert-form').on('submit', function(e) {
+            e.preventDefault();
+            
+            // Collect products data
+            const products = [];
+            $('.product-item').each(function() {
+                const productName = $(this).find('.product-name').val();
+                const productImage = $(this).find('.product-image').val();
+                const deleteProduct = $(this).find('.delete-product').is(':checked');
+                const variants = [];
+
+                // Collect variants data
+                $(this).find('.variant-item').each(function() {
+                    variants.push({
+                        name: $(this).find('.variant-name').val(),
+                        sku: $(this).find('.variant-sku').val(),
+                        price: parseFloat($(this).find('.variant-price').val()),
+                        details: $(this).find('.variant-details').val(),
+                        delete: $(this).find('.delete-variant').is(':checked')
+                    });
+                });
+
+                products.push({
+                    name: productName,
+                    image: productImage,
+                    delete: deleteProduct,
+                    variants: variants
+                });
+            });
+
+            // Send the collected data via AJAX to the bulk_insert_products view
+            $.ajax({
+                type: 'POST',
+                url: '{% url "bulk_insert_products" %}',
+                contentType: 'application/json',
+                data: JSON.stringify({ products: products }),
+                success: function(response) {
+                    alert('Products and variants inserted/deleted successfully!');
+                },
+                error: function(error) {
+                    console.error('Error:', error);
+                    alert('Error occurred during insertion/deletion.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
