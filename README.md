@@ -3,7 +3,7 @@
 
 This project implements a Django API that supports bulk insertion of products and their variants, along with full CRUD functionality. The application has been deployed and is accessible for demonstration purposes at the following link:
 
-[**Live Demo**](#)
+[**Live Demo**](https://jeffu7.pythonanywhere.com)
 
 ## Features
 
